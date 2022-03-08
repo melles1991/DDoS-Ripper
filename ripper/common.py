@@ -9,6 +9,7 @@ import subprocess
 import json
 import sys
 import urllib.request
+from ripper.constants import VERSION
 from functools import lru_cache
 
 from ripper.constants import (GETTING_SERVER_IP_ERROR_MSG, NO_SUCCESSFUL_CONNECTIONS_ERROR_MSG, DEFAULT_CURRENT_IP_VALUE,
@@ -127,20 +128,18 @@ def get_cpu_load():
 
 def print_logo():
     print(f'''
-
 ██████╗ ██████╗ ██╗██████╗ ██████╗ ███████╗██████╗
 ██╔══██╗██╔══██╗██║██╔══██╗██╔══██╗██╔════╝██╔══██╗
-██║  ██║██████╔╝██║██████╔╝██████╔╝█████╗  ██████╔╝ 
+██║  ██║██████╔╝██║██████╔╝██████╔╝█████╗  ██████╔╝
 ██║  ██║██╔══██╗██║██╔═══╝ ██╔═══╝ ██╔══╝  ██╔══██╗
 ██████╔╝██║  ██║██║██║     ██║     ███████╗██║  ██║
 ╚═════╝ ╚═╝  ╚═╝╚═╝╚═╝     ╚═╝     ╚══════╝╚═╝  ╚═╝
-                                            
-
+                                            {VERSION}
 It is the end user's responsibility to obey all applicable laws.
 It is just like a server testing script and Your IP is visible.
-
 Please, make sure you are ANONYMOUS!
     ''')
+
 
 
 ###############################################
