@@ -1,7 +1,9 @@
-FOR %%i IN (%IP%) DO (
-FOR %%p IN (%PORT%) DO (
-FOR %%m IN (%METHOD%) DO (
-start "%%i | %%p" python -u DRipper.py -s %%i -p %%p -t %THEAD% -m %%m -l 2048
+for %%i in (%IP%) DO (
+for %%p in (%PORT%) DO (
+if %METHOD% == "http" (
+start "%%i | %%p" python -u DRipper.py -s %%i -p %%p -r 1 -t %THEAD% -m %METHOD%
+) else (
+start "%%i | %%p" python -u DRipper.py -s %%i -p %%p -r 1 -t %THEAD% -m %METHOD% -l 2048
 )
 )
 )
