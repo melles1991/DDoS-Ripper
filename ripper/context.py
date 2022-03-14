@@ -9,6 +9,7 @@ from ripper import common
 from ripper.common import is_ipv4
 from ripper.constants import DEFAULT_CURRENT_IP_VALUE
 from ripper.sockets import SocketManager
+from ripper.proxy import read_proxy_list
 
 
 def get_headers_dict(base_headers: list[str]):
@@ -150,7 +151,7 @@ class Context:
     """Destination Port."""
     threads: int = 100
     """The number of threads."""
-    max_random_packet_len: int = 0
+    max_random_packet_len: int = 48
     """Limit for Random Packet Length."""
     random_packet_len: bool = False
     """Is Random Packet Length enabled."""
@@ -183,16 +184,25 @@ class Context:
     # External API and services info
     sock_manager: SocketManager = SocketManager()
 
+    # HTTP-related
+    http_method: str = 'GET'
+    http_path: str = '/'
+
     # Health-check
+    is_health_check: bool = True
     connections_check_time: int = 0
     fetching_host_statuses_in_progress: bool = False
     last_host_statuses_update: datetime = None
     health_check_method: str = ''
     host_statuses = {}
 
+    # Proxy lists
+    proxy_list: list = []
+    proxy_list_initial_len: int = 0
+
     def get_target_url(self) -> str:
         """Get fully qualified URI for target HOST - schema://host:port"""
-        return f"{self.protocol}{self.host}:{self.port}"
+        return f"{self.protocol}{self.host}:{self.port}{self.http_path}"
 
     def add_error(self, error: Errors):
         """
@@ -235,9 +245,14 @@ def init_context(_ctx: Context, args):
     _ctx.threads = args[0].threads
 
     _ctx.attack_method = str(args[0].attack_method).lower()
-    if not _ctx.attack_method == 'http':
-        _ctx.random_packet_len = bool(args[0].random_packet_len)
+    _ctx.random_packet_len = bool(args[0].random_packet_len)
+    if args[0].max_random_packet_len:
         _ctx.max_random_packet_len = int(args[0].max_random_packet_len)
+    elif _ctx.attack_method == 'http':
+        _ctx.random_packet_len = False
+        _ctx.max_random_packet_len = 0
+    elif _ctx.attack_method == 'tcp':
+        _ctx.max_random_packet_len = 1024
 
     _ctx.cpu_count = max(os.cpu_count(), 1)  # to avoid situation when vCPU might be 0
 
@@ -248,11 +263,21 @@ def init_context(_ctx: Context, args):
 
     # Get initial info from external services
     _ctx.IpInfo.my_start_ip = common.get_current_ip()
-    _ctx.IpInfo.my_current_ip = _ctx.IpInfo.my_start_ip
     _ctx.IpInfo.my_country = common.get_country_by_ipv4(_ctx.IpInfo.my_start_ip)
     _ctx.IpInfo.target_country = common.get_country_by_ipv4(_ctx.host_ip)
     _ctx.IpInfo.isCloudflareProtected = common.isCloudFlareProtected(_ctx.host, _ctx.user_agents)
 
     _ctx.Statistic.start_time = datetime.now()
     _ctx.connections_check_time = time.time_ns()
-    _ctx.health_check_method = 'ping' if _ctx.attack_method == 'udp'else _ctx.attack_method
+    _ctx.health_check_method = 'ping' if _ctx.attack_method == 'udp' else _ctx.attack_method
+    _ctx.is_health_check = False if args[0].health_check == '0' else True
+
+    _ctx.proxy_list = read_proxy_list(
+        args[0].proxy_list) if args[0].proxy_list else None
+    _ctx.proxy_list_initial_len = len(
+        _ctx.proxy_list) if _ctx.proxy_list is not None else 0
+
+    if args[0].http_method:
+        _ctx.http_method = args[0].http_method.upper()
+    if args[0].http_path:
+        _ctx.http_path = args[0].http_path.lower()

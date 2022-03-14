@@ -1,12 +1,15 @@
 import datetime
-import sys
 import time
+import sys
+from optparse import OptionParser
 from base64 import b64decode
 
-from ripper import context, common, statistic, arg_parser
+from ripper import context, common
 from ripper.attacks import *
+from ripper.common import (get_current_ip, print_usage, parse_args, format_dt)
 from ripper.constants import *
-from ripper.common import get_current_ip, format_dt
+from ripper.context import Errors, ErrorCodes
+from ripper.statistic import render
 from ripper.health_check import fetch_host_statuses
 
 _ctx = Context()
@@ -75,7 +78,6 @@ def connect_host(_ctx: Context) -> bool:
     _ctx.Statistic.connect.set_state_is_connected()
     return res
 
-
 def check_successful_connections(_ctx: Context) -> bool:
     """Checks if there are no successful connections more than SUCCESSFUL_CONNECTIONS_CHECK_PERIOD sec.
     Returns True if there was successful connection for last NO_SUCCESSFUL_CONNECTIONS_DIE_PERIOD_SEC sec.
@@ -87,7 +89,6 @@ def check_successful_connections(_ctx: Context) -> bool:
     if _ctx.Statistic.connect.success == _ctx.Statistic.connect.success_prev:
         if diff_sec > SUCCESSFUL_CONNECTIONS_CHECK_PERIOD_SEC:
             _ctx.add_error(Errors(ErrorCodes.ConnectionError.value, NO_SUCCESSFUL_CONNECTIONS_ERROR_MSG))
-
             return diff_sec <= NO_SUCCESSFUL_CONNECTIONS_DIE_PERIOD_SEC
     else:
         _ctx.Statistic.connect.last_check_time = curr_ms
@@ -134,7 +135,7 @@ def validate_input(args) -> bool:
         print(f'Wrong threads number.')
         return False
 
-    if args.host is None or not args.host:
+    if not args.host:
         print(f'Host wasn\'t detected')
         return False
 
@@ -142,14 +143,22 @@ def validate_input(args) -> bool:
         print(f'Wrong attack type. Possible options: udp, tcp, http.')
         return False
 
+    if args.http_method and args.http_method.lower() not in ('get', 'post', 'head', 'put', 'delete', 'trace', 'connect', 'options', 'patch'):
+        print(f'Wrong http method type. Possible options: get, post, head, put, delete, trace, connect, options, patch.')
+        return False
+
+    if args.http_path and not args.http_path.startswith('/'):
+        print(f'Http path should start with /.')
+        return False
+
     return True
 
 
-def connect_host_loop(_ctx: Context, timeout_secs: int = 3) -> None:
+def connect_host_loop(_ctx: Context, retry_cnt: int = CONNECT_TO_HOST_MAX_RETRY, timeout_secs: int = 3) -> None:
     """Tries to connect host in permanent loop."""
     i = 0
-    while i < CONNECT_TO_HOST_MAX_RETRY:
-        print(f'{format_dt(datetime.datetime.now())} Trying connect to {_ctx.host}:{_ctx.port}...')
+    while i < retry_cnt:
+        print(f'{format_dt(datetime.datetime.now())} ({i+1}/{retry_cnt}) Trying connect to {_ctx.host}:{_ctx.port}...')
         if connect_host(_ctx):
             break
         time.sleep(timeout_secs)
@@ -158,20 +167,25 @@ def connect_host_loop(_ctx: Context, timeout_secs: int = 3) -> None:
 
 def main():
     """The main function to run the script from the command line."""
-    args = arg_parser.create_parser().parse_args()
+    parser = OptionParser(usage=USAGE, epilog=EPILOG)
+    args = parse_args(parser)
 
     if len(sys.argv) < 2 or not validate_input(args[0]):
-        arg_parser.print_usage()
+        print_usage(parser)
 
     # Init context
     context.init_context(_ctx, args)
+    update_current_ip(_ctx)
     go_home(_ctx)
-    connect_host_loop(_ctx)
+    if _ctx.proxy_list_initial_len > 0:
+        connect_host_loop(_ctx, retry_cnt=0)
 
     _ctx.validate()
 
-    time.sleep(.5)
+    if _ctx.is_health_check:
+        update_host_statuses(_ctx)
+        time.sleep(.5)
 
     create_thread_pool(_ctx)
 
-    statistic.render_statistic(_ctx)
+    render(_ctx)

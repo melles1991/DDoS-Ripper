@@ -2,7 +2,7 @@
 # Constants | Logo and help messages
 ###############################################
 
-VERSION = 'v2.0.4'
+VERSION = 'v2.0.3'
 USAGE = 'Usage: python %prog [options] arg'
 EPILOG = 'Example: python DRipper.py -s 192.168.0.1 -p 80 -t 100'
 
@@ -44,7 +44,7 @@ GETTING_SERVER_IP_ERROR_MSG = 'Can\'t get server IP. Packet sending failed. Chec
 NO_SUCCESSFUL_CONNECTIONS_ERROR_MSG = 'There are no successful connections more than 2 min. ' \
                                       'Check your VPN or change host/port.'
 YOUR_IP_WAS_CHANGED = 'Your IP was changed!!! Check VPN connection.'
-CANNOT_SEND_REQUEST_ERR_MSG = 'Cannot send Request or Packet. Host does not response.'
+CANNOT_SEND_REQUEST_ERR_MSG = 'Cannot send Request or Packet. Host does not respond.'
 DEFAULT_CURRENT_IP_VALUE = '...detecting'
 HOST_IN_PROGRESS_STATUS = 'HOST_IN_PROGRESS'
 HOST_FAILED_STATUS = 'HOST_FAILED'
@@ -63,3 +63,4 @@ MIN_SCREEN_WIDTH = 80
 MIN_UPDATE_HOST_STATUSES_TIMEOUT = 120
 SUCCESSFUL_CONNECTIONS_CHECK_PERIOD_SEC = 120
 NO_SUCCESSFUL_CONNECTIONS_DIE_PERIOD_SEC = 180
+DEFAULT_HTTP_METHOD = 'GET'
