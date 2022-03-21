@@ -23,10 +23,23 @@ def get_no_successful_connection_die_msg() -> str:
            f"Your attack is ineffective."
 
 
-def readfile(filename: str) -> list[str]:
+def read_file_lines(filename: str) -> list[str]:
+    """Read string from fs or http"""
+    if filename.startswith('http'):
+        return read_file_lines_http(filename)
+    return read_file_lines_fs(filename)
+
+
+def read_file_lines_fs(filename: str) -> list[str]:
     """Read string from file"""
     with open(filename, 'r') as file:
         return file.readlines()
+
+
+def read_file_lines_http(url: str) -> list[str]:
+    """Read string from http"""
+    data =  urllib.request.urlopen(url).read().decode('utf8')
+    return data.splitlines()
 
 
 def strip_lines(lines: list[str]) -> list[str]:
@@ -40,6 +53,14 @@ def get_random_string(len_from: int, len_to: int) -> str:
     result_str = ''.join(random.choice(letters) for i in range(length))
 
     return result_str
+
+
+def generate_random_bytes(random_packet_len: bool, max_random_packet_len: int) -> bytes:
+    """Generate Random packet bytes."""
+    if random_packet_len:
+        return get_random_string(1, max_random_packet_len).encode('utf-8')
+    else:
+        return random.randbytes(max_random_packet_len)
 
 
 def get_current_ip() -> str:
